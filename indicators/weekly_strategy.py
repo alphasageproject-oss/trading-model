@@ -1,7 +1,7 @@
 import yfinance as yf
 import pandas as pd
 from typing import List
-from .technical_indicators import *
+from .weekly_indicators import *
 
 def run_strategy_w(symbol: str) -> List[List[float]]:
     """Exact replica of your JS RUN_STRATEGY_W(symbol) - Weekly timeframe"""

@@ -6,7 +6,8 @@ class MovingAverageDaily(Base):
     id = Column(Integer, primary_key=True)
     stock_id = Column(Integer, ForeignKey('stocks.id'), nullable=False)
     date = Column(Date, nullable=False)
-    period = Column(Integer, nullable=False)  # 10,50,200
-    ma_value = Column(Float)
+    ma10_value = Column(Float)
+    ma50_value = Column(Float)
+    ma200_value = Column(Float)
     
     stock = relationship("Stock", back_populates="ma_daily")

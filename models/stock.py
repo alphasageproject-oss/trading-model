@@ -13,4 +13,9 @@ class Stock(Base):
     fundamentals = relationship("Fundamental", back_populates="stock")
     macd_daily = relationship("MACDDaily", back_populates="stock")
     macd_weekly = relationship("MACDWeekly", back_populates="stock")
-    # ... similarly for others
+    adx_daily = relationship("ADXDaily", back_populates="stock")
+    adx_weekly = relationship("ADXWeekly", back_populates="stock")
+    bollinger_bands_daily = relationship("BollingerDaily", back_populates="stock")
+    bollinger_bands_weekly = relationship("BollingerWeekly", back_populates="stock")
+    moving_averages_daily = relationship("MovingAverageDaily", back_populates="stock")
+    moving_averages_weekly = relationship("MovingAverageWeekly", back_populates="stock")

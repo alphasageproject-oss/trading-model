@@ -11,3 +11,7 @@ class BollingerDaily(Base):
     lower_band = Column(Float)
     
     stock = relationship("Stock", back_populates="bollinger_daily")
+    
+    __table_args__ = (
+        UniqueConstraint('stock_id', 'date', name='uq_bollinger_daily_stock_date'),
+    )

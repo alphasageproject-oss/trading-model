@@ -1,8 +1,0 @@
-SQLAlchemy==2.0.23
-PyMySQL==1.1.0
-cryptography==41.0.7
-numpy
-pandas
-scikit-learn
-matplotlib
-seaborn

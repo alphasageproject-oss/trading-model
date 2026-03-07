@@ -11,3 +11,7 @@ class MovingAverageDaily(Base):
     ma200_value = Column(Float)
     
     stock = relationship("Stock", back_populates="ma_daily")
+    
+    __table_args__ = (
+        UniqueConstraint('stock_id', 'date', name='uq_ma_daily_stock_date'),
+    )

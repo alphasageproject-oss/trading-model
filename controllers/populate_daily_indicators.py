@@ -68,49 +68,92 @@ def compute_daily_indicators(df: pd.DataFrame) -> Dict[str, pd.Series]:
     return ma_dict
 
 def save_daily_data(session, stock_id: int, df: pd.DataFrame, indicators: Dict):
-    """Save to daily tables."""
-    latest_date = df['date'].max()
+    """Save ALL historical dates with 1 entry per stock+date."""
     
-    # Prices (upsert latest)
-    existing_dates = {p.date for p in session.query(Price.date).filter(Price.stock_id == stock_id).all()}
-    for _, row in df.iterrows():
-        if row['date'] not in existing_dates:
-            price = Price(stock_id=stock_id, date=row['date'],
-                         open_price=float(row['open']), high_price=float(row['high']),
-                         low_price=float(row['low']), close_price=float(row['close']),
-                         volume=float(row['volume']))
+    # Process ALL dates (not just latest)
+    for idx, row in df.iterrows():
+        current_date = row['date']
+        
+        # Skip if exists (enforced by unique constraint)
+        existing_price = session.query(Price).filter(
+            Price.stock_id == stock_id, 
+            Price.date == current_date
+        ).first()
+        if not existing_price:
+            price = Price(
+                stock_id=stock_id, date=current_date,
+                open_price=float(row['open']), high_price=float(row['high']),
+                low_price=float(row['low']), close_price=float(row['close']),
+                volume=float(row['volume'])
+            )
             session.add(price)
-    
-    # Indicators (latest only)
-    def safe_add(model_cls, **kwargs):
-        obj = model_cls(stock_id=stock_id, date=latest_date, **kwargs)
-        session.add(obj)
-    
-    # MACD
-    safe_add(MACDDaily,
-            macd_line=float(indicators['macd_line'].iloc[-1]),
-            signal_line=float(indicators['macd_signal'].iloc[-1]),
-            histogram=float(indicators['macd_hist'].iloc[-1]))
-    
-    # BB
-    safe_add(BollingerDaily,
-            upper_band=float(indicators['bb_upper'].iloc[-1]),
-            middle_band=float(indicators['bb_middle'].iloc[-1]),
-            lower_band=float(indicators['bb_lower'].iloc[-1]))
-    
-    # ADX
-    safe_add(ADXDaily,
-            adx_value=float(indicators['adx'].iloc[-1]),
-            plus_di=float(indicators['plus_di'].iloc[-1]),
-            minus_di=float(indicators['minus_di'].iloc[-1]))
-    
-    # MAs
-    for period in [10,20,50,200]:
-        val = indicators[f'ma_{period}'].iloc[-1]
-        if pd.notna(val):
-            safe_add(MovingAverageDaily, period=period, ma_value=float(val))
+        
+        # Indicators for this exact date
+        try:
+            # MACD for this date
+            macd_daily = session.query(MACDDaily).filter(
+                MACDDaily.stock_id == stock_id, 
+                MACDDaily.date == current_date
+            ).first()
+            if not macd_daily:
+                macd_daily = MACDDaily(
+                    stock_id=stock_id, date=current_date,
+                    macd_line=float(indicators['macd_line'].iloc[idx]),
+                    signal_line=float(indicators['macd_signal'].iloc[idx]),
+                    histogram=float(indicators['macd_hist'].iloc[idx])
+                )
+                session.add(macd_daily)
+            
+            # Bollinger
+            bb_daily = session.query(BollingerDaily).filter(
+                BollingerDaily.stock_id == stock_id, 
+                BollingerDaily.date == current_date
+            ).first()
+            if not bb_daily:
+                bb_daily = BollingerDaily(
+                    stock_id=stock_id, date=current_date,
+                    upper_band=float(indicators['bb_upper'].iloc[idx]),
+                    middle_band=float(indicators['bb_middle'].iloc[idx]),
+                    lower_band=float(indicators['bb_lower'].iloc[idx])
+                )
+                session.add(bb_daily)
+            
+            # ADX
+            adx_daily = session.query(ADXDaily).filter(
+                ADXDaily.stock_id == stock_id, 
+                ADXDaily.date == current_date
+            ).first()
+            if not adx_daily:
+                adx_daily = ADXDaily(
+                    stock_id=stock_id, date=current_date,
+                    adx_value=float(indicators['adx'].iloc[idx]),
+                    plus_di=float(indicators['plus_di'].iloc[idx]),
+                    minus_di=float(indicators['minus_di'].iloc[idx])
+                )
+                session.add(adx_daily)
+            
+            # Moving Averages (one per period)
+            for period in [10, 20, 50, 200]:
+                ma_val = indicators[f'ma_{period}'].iloc[idx]
+                if pd.notna(ma_val):
+                    ma_daily = session.query(MovingAverageDaily).filter(
+                        MovingAverageDaily.stock_id == stock_id,
+                        MovingAverageDaily.date == current_date,
+                        MovingAverageDaily.period == period
+                    ).first()
+                    if not ma_daily:
+                        ma_daily = MovingAverageDaily(
+                            stock_id=stock_id, date=current_date,
+                            period=period, ma_value=float(ma_val)
+                        )
+                        session.add(ma_daily)
+                        
+        except Exception as e:
+            print(f"Error saving {stock_id}:{current_date}: {e}")
+            continue
     
     session.commit()
+
 
 def populate_daily_indicators(limit: int = None):
     """Main daily runner."""

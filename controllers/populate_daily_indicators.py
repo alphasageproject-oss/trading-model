@@ -132,21 +132,20 @@ def save_daily_data(session, stock_id: int, df: pd.DataFrame, indicators: Dict):
                 )
                 session.add(adx_daily)
             
-            # Moving Averages (one per period)
-            for period in [10, 20, 50, 200]:
-                ma_val = indicators[f'ma_{period}'].iloc[idx]
-                if pd.notna(ma_val):
-                    ma_daily = session.query(MovingAverageDaily).filter(
-                        MovingAverageDaily.stock_id == stock_id,
-                        MovingAverageDaily.date == current_date,
-                        MovingAverageDaily.period == period
-                    ).first()
-                    if not ma_daily:
-                        ma_daily = MovingAverageDaily(
-                            stock_id=stock_id, date=current_date,
-                            period=period, ma_value=float(ma_val)
-                        )
-                        session.add(ma_daily)
+            # Single MovingAverageDaily row per date (ma10, ma50, ma200)
+            ma_daily = session.query(MovingAverageDaily).filter(
+                MovingAverageDaily.stock_id == stock_id,
+                MovingAverageDaily.date == current_date
+            ).first()
+            if not ma_daily:
+                ma_daily = MovingAverageDaily(
+                    stock_id=stock_id, date=current_date,
+                    ma10_value=float(indicators['ma_10'].iloc[idx]) if pd.notna(indicators['ma_10'].iloc[idx]) else None,
+                    ma50_value=float(indicators['ma_50'].iloc[idx]) if pd.notna(indicators['ma_50'].iloc[idx]) else None,
+                    ma200_value=float(indicators['ma_200'].iloc[idx]) if pd.notna(indicators['ma_200'].iloc[idx]) else None
+                )
+                session.add(ma_daily)
+
                         
         except Exception as e:
             print(f"Error saving {stock_id}:{current_date}: {e}")

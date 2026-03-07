@@ -11,3 +11,7 @@ class ADXDaily(Base):
     minus_di = Column(Float)
     
     stock = relationship("Stock", back_populates="adx_daily")
+    
+    __table_args__ = (
+        UniqueConstraint('stock_id', 'date', name='uq_adx_daily_stock_date'),
+    )

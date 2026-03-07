@@ -11,3 +11,7 @@ class MACDWeekly(Base):
     histogram = Column(Float)
     
     stock = relationship("Stock", back_populates="macd_weekly")
+    
+    __table_args__ = (
+        UniqueConstraint('stock_id', 'date', name='uq_macd_weekly_stock_date'),
+    )

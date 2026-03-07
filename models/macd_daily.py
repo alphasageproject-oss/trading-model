@@ -11,3 +11,7 @@ class MACDDaily(Base):
     histogram = Column(Float)
     
     stock = relationship("Stock", back_populates="macd_daily")
+    
+    __table_args__ = (
+        UniqueConstraint('stock_id', 'date', name='uq_macd_daily_stock_date'),
+    )
